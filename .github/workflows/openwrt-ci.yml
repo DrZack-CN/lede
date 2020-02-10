@@ -5,16 +5,19 @@
 # Copyright (C) 2019 KFERMercer <KFER.Mercer@gmail.com>
 # 
 # <https://github.com/KFERMercer/OpenWrt-CI>
-# 
+#
 
 name: OpenWrt-CI
 
 on:
-  # schedule:
-  #  - cron: 0 20 * * *
   push:
     branches: 
       - master
+  # schedule:
+  #   - cron: 0 20 * * *
+  # release:
+  #   types: [published]
+
 jobs:
 
   build:
@@ -22,6 +25,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
       - name: Checkout
         uses: actions/checkout@master
         with:
@@ -39,7 +43,6 @@ jobs:
           sudo -E apt-get -y autoremove --purge
           sudo -E apt-get clean
 
-          # 利用挂载在 /mnt/ 的 14G 额外空间:
           # sudo mkdir -p -m 777 /mnt/openwrt/bin /mnt/openwrt/build_dir/host /mnt/openwrt/build_dir/hostpkg /mnt/openwrt/dl /mnt/openwrt/feeds /mnt/openwrt/staging_dir
           # ln -s /mnt/openwrt/bin ./bin
           # mkdir -p ./build_dir/host && ln -s /mnt/openwrt/build_dir/host ./build_dir/host
@@ -55,14 +58,377 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      - name: Costom configure file
+      - name: Generate configuration file
+        run: |
           rm -f ./.config*
           touch ./.config
+
+          #
+          # ========================固件定制部分========================
+          # 
+
+          # 
+          # 如果不对本区块做出任何编辑, 则生成默认配置固件. 
+          # 
+
+          # 以下为定制化固件选项和说明:
+          #
+
+          #
+          # 有些插件/选项是默认开启的, 如果想要关闭, 请参照以下示例进行编写:
+          # 
+          #          =========================================
+          #         |  # 取消编译VMware镜像:                   |
+          #         |  cat >> .config <<EOF                   |
+          #         |  # CONFIG_VMDK_IMAGES is not set        |
+          #         |  EOF                                    |
+          #          =========================================
+          #
+
+          # 
+          # 以下是一些提前准备好的一些插件选项.
+          # 直接取消注释相应代码块即可应用. 不要取消注释代码块上的汉字说明.
+          # 如果不需要代码块里的某一项配置, 只需要删除相应行.
+          #
+          # 如果需要其他插件, 请按照示例自行添加.
+          # 注意, 只需添加依赖链顶端的包. 如果你需要插件 A, 同时 A 依赖 B, 即只需要添加 A.
+          # 
+          # 无论你想要对固件进行怎样的定制, 都需要且只需要修改 EOF 回环内的内容.
+          # 
+
+          # 编译x64固件:
+          cat >> .config <<EOF
+          CONFIG_TARGET_x86=y
+          CONFIG_TARGET_x86_64=y
+          CONFIG_TARGET_x86_64_Generic=y
+          CONFIG_HAS_SUBTARGETS=y
+          CONFIG_TARGET_BOARD="x86"
+          CONFIG_TARGET_SUBTARGET="64"
+          CONFIG_TARGET_PROFILE="Generic"
+          CONFIG_TARGET_ARCH_PACKAGES="x86_64"
+          CONFIG_DEFAULT_TARGET_OPTIMIZATION="-Os -pipe"
+          CONFIG_CPU_TYPE=" "
+          CONFIG_LINUX_4_19=y
+          CONFIG_DEFAULT_alsa-utils=y
+          CONFIG_DEFAULT_ath10k-firmware-qca9888=y
+          CONFIG_DEFAULT_ath10k-firmware-qca988x=y
+          CONFIG_DEFAULT_ath10k-firmware-qca9984=y
+          CONFIG_DEFAULT_autocore=y
+          CONFIG_DEFAULT_automount=y
+          CONFIG_DEFAULT_autosamba=y
+          CONFIG_DEFAULT_base-files=y
+          CONFIG_DEFAULT_block-mount=y
+          CONFIG_DEFAULT_brcmfmac-firmware-43602a1-pcie=y
+          CONFIG_DEFAULT_busybox=y
+          CONFIG_DEFAULT_ca-certificates=y
+          CONFIG_DEFAULT_coremark=y
+          CONFIG_DEFAULT_ddns-scripts_aliyun=y
+          CONFIG_DEFAULT_ddns-scripts_dnspod=y
+          CONFIG_DEFAULT_default-settings=y
+          CONFIG_DEFAULT_dnsmasq-full=y
+          CONFIG_DEFAULT_dropbear=y
+          CONFIG_DEFAULT_e2fsprogs=y
+          CONFIG_DEFAULT_fdisk=y
+          CONFIG_DEFAULT_firewall=y
+          CONFIG_DEFAULT_fstools=y
+          CONFIG_DEFAULT_htop=y
+          CONFIG_DEFAULT_iptables=y
+          CONFIG_DEFAULT_iwinfo=y
+          CONFIG_DEFAULT_kmod-8139cp=y
+          CONFIG_DEFAULT_kmod-8139too=y
+          CONFIG_DEFAULT_kmod-ac97=y
+          CONFIG_DEFAULT_kmod-ath10k=y
+          CONFIG_DEFAULT_kmod-ath5k=y
+          CONFIG_DEFAULT_kmod-ath9k=y
+          CONFIG_DEFAULT_kmod-ath9k-htc=y
+          CONFIG_DEFAULT_kmod-bnx2=y
+          CONFIG_DEFAULT_kmod-button-hotplug=y
+          CONFIG_DEFAULT_kmod-e1000=y
+          CONFIG_DEFAULT_kmod-e1000e=y
+          CONFIG_DEFAULT_kmod-fs-f2fs=y
+          CONFIG_DEFAULT_kmod-i40e=y
+          CONFIG_DEFAULT_kmod-i40evf=y
+          CONFIG_DEFAULT_kmod-igb=y
+          CONFIG_DEFAULT_kmod-igbvf=y
+          CONFIG_DEFAULT_kmod-ipt-offload=y
+          CONFIG_DEFAULT_kmod-ipt-raw=y
+          CONFIG_DEFAULT_kmod-ixgbe=y
+          CONFIG_DEFAULT_kmod-nf-nathelper=y
+          CONFIG_DEFAULT_kmod-nf-nathelper-extra=y
+          CONFIG_DEFAULT_kmod-pcnet32=y
+          CONFIG_DEFAULT_kmod-r8125=y
+          CONFIG_DEFAULT_kmod-r8169=y
+          CONFIG_DEFAULT_kmod-rt2800-usb=y
+          CONFIG_DEFAULT_kmod-sound-hda-codec-realtek=y
+          CONFIG_DEFAULT_kmod-sound-hda-codec-via=y
+          CONFIG_DEFAULT_kmod-sound-hda-core=y
+          CONFIG_DEFAULT_kmod-sound-via82xx=y
+          CONFIG_DEFAULT_kmod-tcp-bbr=y
+          CONFIG_DEFAULT_kmod-tulip=y
+          CONFIG_DEFAULT_kmod-usb-audio=y
+          CONFIG_DEFAULT_kmod-usb-hid=y
+          CONFIG_DEFAULT_kmod-usb-net=y
+          CONFIG_DEFAULT_kmod-usb-net-asix=y
+          CONFIG_DEFAULT_kmod-usb-net-asix-ax88179=y
+          CONFIG_DEFAULT_kmod-usb-net-rtl8150=y
+          CONFIG_DEFAULT_kmod-usb-net-rtl8152=y
+          CONFIG_DEFAULT_kmod-vmxnet3=y
+          CONFIG_DEFAULT_libc=y
+          CONFIG_DEFAULT_libgcc=y
+          CONFIG_DEFAULT_libustream-openssl=y
+          CONFIG_DEFAULT_lm-sensors=y
+          CONFIG_DEFAULT_logd=y
+          CONFIG_DEFAULT_luci=y
+          CONFIG_DEFAULT_luci-app-accesscontrol=y
+          CONFIG_DEFAULT_luci-app-adbyby-plus=y
+          CONFIG_DEFAULT_luci-app-arpbind=y
+          CONFIG_DEFAULT_luci-app-autoreboot=y
+          CONFIG_DEFAULT_luci-app-ddns=y
+          CONFIG_DEFAULT_luci-app-filetransfer=y
+          CONFIG_DEFAULT_luci-app-flowoffload=y
+          CONFIG_DEFAULT_luci-app-ipsec-vpnd=y
+          CONFIG_DEFAULT_luci-app-nlbwmon=y
+          CONFIG_DEFAULT_luci-app-pptp-server=y
+          CONFIG_DEFAULT_luci-app-qbittorrent=y
+          CONFIG_DEFAULT_luci-app-ramfree=y
+          CONFIG_DEFAULT_luci-app-sfe=y
+          CONFIG_DEFAULT_luci-app-sqm=y
+          CONFIG_DEFAULT_luci-app-ssr-plus=y
+          CONFIG_DEFAULT_luci-app-unblockmusic=y
+          CONFIG_DEFAULT_luci-app-upnp=y
+          CONFIG_DEFAULT_luci-app-v2ray-server=y
+          CONFIG_DEFAULT_luci-app-vlmcsd=y
+          CONFIG_DEFAULT_luci-app-vsftpd=y
+          CONFIG_DEFAULT_luci-app-wol=y
+          CONFIG_DEFAULT_luci-app-xlnetacc=y
+          CONFIG_DEFAULT_luci-app-zerotier=y
+          CONFIG_DEFAULT_luci-proto-bonding=y
+          CONFIG_DEFAULT_mkf2fs=y
+          CONFIG_DEFAULT_mtd=y
+          CONFIG_DEFAULT_netifd=y
+          CONFIG_DEFAULT_opkg=y
+          CONFIG_DEFAULT_partx-utils=y
+          CONFIG_DEFAULT_ppp=y
+          CONFIG_DEFAULT_ppp-mod-pppoe=y
+          CONFIG_DEFAULT_uci=y
+          CONFIG_DEFAULT_uclient-fetch=y
+          CONFIG_DEFAULT_urandom-seed=y
+          CONFIG_DEFAULT_urngd=y
+          CONFIG_DEFAULT_wget=y
+          CONFIG_DEFAULT_wpad=y
+          CONFIG_HAS_FPU=y
+          CONFIG_AUDIO_SUPPORT=y
+          CONFIG_GPIO_SUPPORT=y
+          CONFIG_PCI_SUPPORT=y
+          CONFIG_PCIE_SUPPORT=y
+          CONFIG_PCMCIA_SUPPORT=y
+          CONFIG_USB_SUPPORT=y
+          CONFIG_RTC_SUPPORT=y
+          CONFIG_USES_SQUASHFS=y
+          CONFIG_ARCH_64BIT=y
+          CONFIG_VIRTIO_SUPPORT=y
+          CONFIG_x86_64=y
+          CONFIG_ARCH="x86_64"
+          EOF
+
+          # 固件压缩:
+          cat >> .config <<EOF
+          CONFIG_PACKAGE_libbz2=y
+          CONFIG_TARGET_ROOTFS_SQUASHFS=y
+          CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=256
+          CONFIG_TARGET_UBIFS_FREE_SPACE_FIXUP=y
+          CONFIG_TARGET_UBIFS_JOURNAL_SIZE=""
+          CONFIG_GRUB_IMAGES=y
+          CONFIG_GRUB_CONSOLE=y
+          CONFIG_GRUB_SERIAL="ttyS0"
+          CONFIG_GRUB_BAUDRATE=115200
+          CONFIG_GRUB_BOOTOPTS=""
+          CONFIG_GRUB_TIMEOUT="0"
+          CONFIG_GRUB_TITLE="OpenWrt"
+          EOF
+
+          # 编译UEFI固件:
+          cat >> .config <<EOF
+          CONFIG_VMDK_IMAGES=y
+          CONFIG_TARGET_IMAGES_PAD=y
+          CONFIG_TARGET_KERNEL_PARTSIZE=16
+          CONFIG_TARGET_ROOTFS_PARTSIZE=160
+          CONFIG_TARGET_ROOTFS_PARTNAME="
+          EOF
+
+          # IPv6支持:
+          cat >> .config <<EOF
+          CONFIG_IPV6=y
+          CONFIG_PACKAGE_dnsmasq_full_dhcpv6=y
+          CONFIG_PACKAGE_ipv6helper=y
+          CONFIG_PACKAGE_kmod-ip6tables=y
+          CONFIG_PACKAGE_kmod-ipt-conntrack=y
+          CONFIG_PACKAGE_kmod-ipt-conntrack-extra=y
+          CONFIG_PACKAGE_kmod-ipt-core=y
+          CONFIG_PACKAGE_kmod-ipt-fullconenat=y
+          CONFIG_PACKAGE_kmod-ipt-ipsec=y
+          CONFIG_PACKAGE_kmod-ipt-nat=y
+          EOF
+
+          # 多文件系统支持:
+          cat >> .config <<EOF
+          CONFIG_PACKAGE_kmod-fs-nfs=y
+          CONFIG_PACKAGE_kmod-fs-nfs-common=y
+          CONFIG_PACKAGE_kmod-fs-nfs-v3=y
+          CONFIG_PACKAGE_kmod-fs-nfs-v4=y
+          CONFIG_PACKAGE_kmod-fs-ntfs=y
+          CONFIG_PACKAGE_kmod-fs-squashfs=y
+          CONFIG_PACKAGE_htop=y
+          CONFIG_PACKAGE_monit=m
+          CONFIG_PACKAGE_sudo=m
+          CONFIG_PACKAGE_rpcd=y
+          CONFIG_PACKAGE_sqm-scripts=y
+          CONFIG_PACKAGE_ubox=y
+          CONFIG_PACKAGE_ubus=y
+          CONFIG_PACKAGE_ubusd=y
+          CONFIG_PACKAGE_firewall=y
+          EOF
+
+          # USB3.0支持:
+          cat >> .config <<EOF
+          CONFIG_PACKAGE_kmod-usb-ohci=y
+          CONFIG_PACKAGE_kmod-usb-ohci-pci=y
+          CONFIG_PACKAGE_kmod-usb2=y
+          CONFIG_PACKAGE_kmod-usb2-pci=y
+          CONFIG_PACKAGE_kmod-usb3=y
+          CONFIG_PACKAGE_e100-firmware=y
+          CONFIG_PACKAGE_wireless-regdb=y
+          CONFIG_PACKAGE_kmod-scsi-core=y
+          CONFIG_PACKAGE_kmod-mvsas=m
+          CONFIG_PACKAGE_kmod-libsas=m
+          CONFIG_PACKAGE_kmod-e100=y
+          CONFIG_PACKAGE_kmod-e1000=y
+          CONFIG_PACKAGE_kmod-e1000e=y
+          CONFIG_PACKAGE_kmod-vmxnet3=y
+          CONFIG_PACKAGE_kmod-bonding=y
+          CONFIG_PACKAGE_kmod-pppoe=y
+          CONFIG_PACKAGE_kmod-pppox=y
+          CONFIG_PACKAGE_kmod-tcp-bbr=y
+          CONFIG_PACKAGE_kmod-button-hotplug=y
+          CONFIG_PACKAGE_kmod-thermal=y
+          CONFIG_PACKAGE_kmod-sound-core=y
+          CONFIG_PACKAGE_kmod-ac97=y
+          CONFIG_PACKAGE_kmod-sound-hda-core=y
+          CONFIG_PACKAGE_kmod-sound-hda-codec-realtek=y
+          CONFIG_PACKAGE_kmod-usb-audio=y
+          CONFIG_PACKAGE_kmod-video-core=m
+          CONFIG_PACKAGE_kmod-irqbypass=m
+          CONFIG_PACKAGE_kmod-kvm-intel=m
+          CONFIG_PACKAGE_kmod-kvm-x86=m
+          CONFIG_PACKAGE_libip4tc=y
+          CONFIG_PACKAGE_pptpd=y
+          CONFIG_PACKAGE_softethervpn5-bridge=y
+          CONFIG_PACKAGE_softethervpn5-client=y
+          CONFIG_PACKAGE_softethervpn5-libs=y
+          CONFIG_PACKAGE_softethervpn5-server=y
+          CONFIG_PACKAGE_haproxy=m
+          EOF
+
+          # 常用LuCI插件选择:
+          cat >> .config <<EOF
+          CONFIG_PACKAGE_luci-app-accesscontrol=y
+          CONFIG_PACKAGE_luci-app-acme=y
+          CONFIG_PACKAGE_luci-app-adbyby-plus=y
+          CONFIG_PACKAGE_luci-app-ddns=y
+          CONFIG_PACKAGE_luci-app-aria2=y
+          CONFIG_PACKAGE_luci-app-baidupcs-web=y
+          CONFIG_PACKAGE_luci-app-docker=y
+          CONFIG_PACKAGE_luci-app-firewall=y
+          CONFIG_PACKAGE_luci-app-frpc=y
+          CONFIG_PACKAGE_luci-app-kodexplorer=y
+          CONFIG_PACKAGE_luci-app-dnspod=m
+          CONFIG_PACKAGE_luci-app-minidlna=y
+          CONFIG_PACKAGE_luci-app-ntpc=y
+          CONFIG_PACKAGE_luci-app-openvpn=y
+          CONFIG_PACKAGE_luci-app-openvpn-server=y
+          CONFIG_PACKAGE_luci-app-pptp-server=y
+          CONFIG_PACKAGE_luci-app-qbittorrent=y
+          CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Kcptun=y
+          CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Shadowsocks=y
+          CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_ShadowsocksR_Server=y
+          CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_ShadowsocksR_Socks=y
+          CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_V2ray=y
+          CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Trojan=y
+          CONFIG_PACKAGE_luci-app-ttyd=y
+          CONFIG_PACKAGE_luci-app-upnp=y
+          CONFIG_PACKAGE_luci-app-usb-printer=y
+          CONFIG_PACKAGE_luci-app-v2ray-server=y
+          CONFIG_PACKAGE_luci-app-verysync=y
+          CONFIG_PACKAGE_luci-app-webadmin=y
+          CONFIG_PACKAGE_luci-app-wireguard=y
+          CONFIG_PACKAGE_luci-app-wrtbwmon=y
+          CONFIG_PACKAGE_luci-app-xlnetacc=y
+          CONFIG_PACKAGE_luci-app-zerotier=y
+          EOF
+
+          # LuCI主题:
+          cat >> .config <<EOF
+          CONFIG_PACKAGE_luci-theme-argon=m
+          CONFIG_PACKAGE_luci-theme-netgear=m
+          CONFIG_PACKAGE_luci-theme-material=m
+          CONFIG_PACKAGE_luci-theme-bootstrap=y
+          EOF
+
+          # 常用软件包:
+          cat >> .config <<EOF
+          CONFIG_PACKAGE_curl=y
+          # CONFIG_PACKAGE_htop=y
+          # CONFIG_PACKAGE_nano=y
+          # CONFIG_PACKAGE_screen=y
+          # CONFIG_PACKAGE_tree=y
+          # CONFIG_PACKAGE_vim-fuller=y
+          CONFIG_PACKAGE_wget=y
+          CONFIG_PACKAGE_python=y
+          CONFIG_PACKAGE_python-base=y
+          CONFIG_PACKAGE_python-codecs=y
+          CONFIG_PACKAGE_python-compiler=y
+          CONFIG_PACKAGE_python-ctypes=y
+          CONFIG_PACKAGE_python-db=y
+          CONFIG_PACKAGE_python-decimal=y
+          CONFIG_PACKAGE_python-gdbm=y
+          CONFIG_PACKAGE_python-light=y
+          CONFIG_PACKAGE_qBittorrent=y
+          CONFIG_PACKAGE_ariang=y
+          CONFIG_PACKAGE_aria2=y
+          CONFIG_ARIA2_OPENSSL=y
+          CONFIG_ARIA2_NOXML=y
+          CONFIG_ARIA2_BITTORRENT=y
+          CONFIG_ARIA2_WEBSOCKET=y
+          EOF
+          
+          # 本地语言包
+          cat >> .config <<EOF
+          CONFIG_PACKAGE_kmod-nls-base=y
+          CONFIG_PACKAGE_kmod-nls-cp437=y
+          CONFIG_PACKAGE_kmod-nls-cp936=y
+          CONFIG_PACKAGE_kmod-nls-cp950=y
+          CONFIG_PACKAGE_kmod-nls-iso8859-1=y
+          CONFIG_PACKAGE_kmod-nls-utf8=y
+          EOF
+
+          # 取消编译VMware镜像以及镜像填充 (不要删除被缩进的注释符号):
+          # cat >> .config <<EOF
+          # # CONFIG_TARGET_IMAGES_PAD is not set
+          # # CONFIG_VMDK_IMAGES is not set
+          # EOF
+
+          # 
+          # ========================固件定制部分结束========================
+          # 
+
+          sed -i 's/^[ \t]*//g' ./.config
+          make defconfig
 
       - name: Make download
         run: |
           make download -j8
-          find dl -size -1024c -exec rm -f {} \;
+          find ./dl/ -size -1024c -exec rm -f {} \;
+          df -h
 
       - name: Compile firmware
         run: |
